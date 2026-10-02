@@ -100,6 +100,7 @@ export const MODULES: ModuleMeta[] = [
     actions: ["开始飞行", "确认完成", "中止任务"],
     actionTargets: {"开始飞行": "飞行中", "确认完成": "已完成", "中止任务": "因故中止"},
     metrics: ["今日飞行任务", "已完成任务", "发现异常数"],
+    terminalStatuses: ["已完成", "因故中止"],
   },
   {
     key: "campaign",

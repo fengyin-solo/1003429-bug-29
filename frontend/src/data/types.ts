@@ -18,6 +18,8 @@ export type ModuleMeta = {
   actions: string[]
   actionTargets: Record<string, string>
   metrics: string[]
+  // 终态状态：落到这些状态后不再接受别的流转（如已完成、因故中止），看板也不再计入待处理。
+  terminalStatuses?: string[]
 }
 
 export type PageResult = {
