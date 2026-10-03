@@ -47,7 +47,7 @@
           <td>{{ row.status }}</td>
           <td class="row-actions">
             <button
-              v-for="action in actions"
+              v-for="action in availableActions(meta.key, row)"
               :key="action"
               class="link"
               type="button"
@@ -55,6 +55,7 @@
             >
               {{ action }}
             </button>
+            <span v-if="!availableActions(meta.key, row).length" class="muted-text">已终态</span>
           </td>
         </tr>
         <tr v-if="!rows.length">
@@ -65,6 +66,7 @@
 
     <footer class="page-foot">
       <span>共 {{ total }} 条无人机巡查记录</span>
+      <span v-if="noticeMessage" class="ok-text">{{ noticeMessage }}</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
   </section>
@@ -74,22 +76,40 @@
 import { computed, onMounted, ref } from 'vue'
 
 import {
+  availableActions,
   downloadEntries,
   listEntries,
   moduleMeta,
   runAction as applyAction,
+  todayStamp,
 } from '@/api/local-service'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('drone')
 const columns = ["任务编号", "飞行区域", "飞行路线", "飞手姓名", "起飞时间", "降落时间", "发现异常数", "任务状态"]
-const actions = ["开始飞行", "确认完成", "中止任务"]
 const statuses = ["待执行", "飞行中", "已完成", "因故中止"]
-const stats = [{"label": "今日飞行任务", "value": 0}, {"label": "已完成任务", "value": 0}, {"label": "发现异常数", "value": 0}]
+const stats = computed(() => [
+  {
+    label: '今日飞行任务',
+    value: rows.value.filter((row) => String(row['起飞时间'] ?? '') === todayStamp()).length,
+  },
+  {
+    label: '已完成任务',
+    value: rows.value.filter((row) => String(row.status) === '已完成').length,
+  },
+  {
+    label: '发现异常数',
+    value: rows.value.reduce(
+      (sum, row) => sum + (Number.parseInt(String(row['发现异常数'] ?? ''), 10) || 0),
+      0,
+    ),
+  },
+])
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
+const noticeMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
 const statusSummary = computed(() =>
@@ -114,11 +134,13 @@ function openCreate() {
 
 function runAction(action: string, row: EntryRow) {
   errorMessage.value = ''
+  noticeMessage.value = ''
   const result = applyAction(meta.key, Number(row.id), action)
   if (!result.ok) {
     errorMessage.value = result.message
     return
   }
+  noticeMessage.value = result.message
   reload()
 }
 

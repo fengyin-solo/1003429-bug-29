@@ -36,16 +36,22 @@ export function allRows(): Record<string, EntryRow[]> {
   return cache
 }
 
+/** 丢掉内存缓存，重新从 localStorage 读，动作流转前用来对齐其它页签的写入。 */
+export function refreshRows(): void {
+  cache = readStorage()
+}
+
 export function listRows(key: string): EntryRow[] {
   return allRows()[key] ?? []
 }
 
 export function saveRows(key: string, rows: EntryRow[]): void {
   const next = { ...allRows(), [key]: rows }
-  cache = next
+  // 先落持久层再换缓存：写入失败时内存与存储保持一致，重试可从原步骤继续。
   if (typeof window !== 'undefined' && window.localStorage) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   }
+  cache = next
 }
 
 export function resetRows(key: string): EntryRow[] {
